@@ -41,6 +41,21 @@ function Invoke-PSCmdServer
     $Pipe.Dispose()
 }
 
+function Unprotect-SecureString
+{
+    param(
+        [Parameter(Position=0)]
+        [SecureString] $SecureString
+    )
+
+    if ($PSEdition -eq 'Desktop') {
+        $bstr = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($SecureString)
+        [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($bstr)
+    } else {
+        ConvertFrom-SecureString -SecureString $SecureString -AsPlainText
+    }
+}
+
 function Get-FunctionDefinition
 {
     param(
@@ -54,6 +69,7 @@ function Get-FunctionDefinition
 $PipeName = "pscmd-" + (New-Guid).ToString()
 
 $ClientCommand = @(
+    $(Get-FunctionDefinition 'Unprotect-SecureString'),
     $(Get-FunctionDefinition 'Invoke-PSCmdClient'),
     "Invoke-PSCmdClient $PipeName") | Out-String
 
@@ -63,7 +79,8 @@ $EncodedCommand = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetB
 # Instead, the sensitive commands are passed from the parent to the child through a named pipe,
 # and executed using Invoke-Expression without leaking the contents in ConsoleHost_history.txt.
 
-Start-Process 'pwsh' -ArgumentList @('-EncodedCommand', $EncodedCommand, '-NoExit')
+$ShellName = if ($PSEdition -eq 'Desktop') { 'powershell' } else { 'pwsh' }
+Start-Process $ShellName -ArgumentList @('-EncodedCommand', $EncodedCommand, '-NoExit')
 
 # This secure command should not appear in plain text in the parent, but rather loaded into a variable.
 # While it won't be encrypted when passed to the child process over a named pipe, its contents will not
@@ -71,7 +88,7 @@ Start-Process 'pwsh' -ArgumentList @('-EncodedCommand', $EncodedCommand, '-NoExi
 
 $SecureCommand = @(
     "`$MySecret = ConvertTo-SecureString 'my-secret' -AsPlainText -Force",
-    "ConvertFrom-SecureString -SecureString `$MySecret -AsPlainText") | Out-String
+    "Unprotect-SecureString `$MySecret") | Out-String
 
 # Launch the named pipe server from which the child process will read the secure commands from.
 # We take care of allowing only one named pipe client, and we close the named pipe server after.

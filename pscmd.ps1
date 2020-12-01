@@ -6,16 +6,26 @@ function Invoke-PSCmdClient
         [string] $PipeName
     )
 
-    $Pipe = [System.IO.Pipes.NamedPipeClientStream]::new('.', $PipeName,
+    $Pipe = $Reader = $null
+
+    try {
+        $Pipe = [System.IO.Pipes.NamedPipeClientStream]::new('.', $PipeName,
         [System.IO.Pipes.PipeDirection]::In)
-    $Pipe.Connect()
-    $Reader = [System.IO.StreamReader]::new($Pipe)
-    while ($null -ne ($EncodedCommand = $Reader.ReadLine())) {
-        $SecureCommand = [System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($EncodedCommand))
-        Invoke-Expression $SecureCommand
+        $Pipe.Connect(3000)
+        $Reader = [System.IO.StreamReader]::new($Pipe)
+        while ($null -ne ($EncodedCommand = $Reader.ReadLine())) {
+            $SecureCommand = [System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($EncodedCommand))
+            Invoke-Expression $SecureCommand
+        }
+        $Reader.Close()
+    } finally {
+        if ($null -ne $Reader) {
+            $Reader.Dispose()
+        }
+        if ($null -ne $Pipe) {
+            $Pipe.Dispose()
+        }
     }
-    $Reader.Dispose()
-    $Pipe.Dispose()
 }
 
 function Invoke-PSCmdServer
@@ -27,18 +37,28 @@ function Invoke-PSCmdServer
         [string[]] $Commands
     )
 
-    $Pipe = [System.IO.Pipes.NamedPipeServerStream]::new($PipeName,
+    $Pipe = $Writer = $null
+
+    try {
+        $Pipe = [System.IO.Pipes.NamedPipeServerStream]::new($PipeName,
         [System.IO.Pipes.PipeDirection]::Out, 1,
-        [System.IO.Pipes.PipeTransmissionMode]::Message)
-    $Pipe.WaitForConnection()
-    $Writer = [System.IO.StreamWriter]::new($Pipe)
-    $Writer.AutoFlush = $true
-    foreach ($Command in $Commands) {
-        $EncodedCommand = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($Command))
-        $Writer.WriteLine($EncodedCommand)
+        [System.IO.Pipes.PipeTransmissionMode]::Byte)
+        $Pipe.WaitForConnection()
+        $Writer = [System.IO.StreamWriter]::new($Pipe)
+        $Writer.AutoFlush = $true
+        foreach ($Command in $Commands) {
+            $EncodedCommand = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($Command))
+            $Writer.WriteLine($EncodedCommand)
+        }
+        $Writer.Close()
+    } finally {
+        if ($null -ne $Writer) {
+            $Writer.Dispose()
+        }
+        if ($null -ne $Pipe) {
+            $Pipe.Dispose()
+        }
     }
-    $Writer.Dispose()
-    $Pipe.Dispose()
 }
 
 function Unprotect-SecureString

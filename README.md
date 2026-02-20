@@ -17,16 +17,17 @@ The standard mitigation is `-EncodedCommand`, but Base64 encoding is trivially r
 PSSecureCommand decouples the **bootstrap** command (what appears on the command line) from the **sensitive** command (what actually runs), by routing the latter through a **Windows named pipe** that only the two involved PowerShell processes can access.
 
 ```
-Parent process                          Child process
-──────────────────                      ─────────────────────────────
-1. Generate unique pipe name            
-2. Build bootstrap command that         
-   only sets up the pipe client         
-3. Encode + launch child with           4. Child decodes bootstrap, defines
-   -EncodedCommand <safe payload>  →       Invoke-PSCmdClient, connects to pipe
-4. Start named pipe server              5. Reads base64-encoded commands from pipe
-5. Write secret commands →  pipe   →    6. Decodes and Invoke-Expression each command
-6. Close pipe server                    7. Continues running (-NoExit)
+Parent process                            Child process
+──────────────────                        ─────────────────────────────
+1. Generate unique GUID pipe name
+2. Serialise helper functions into
+   a bootstrap -EncodedCommand
+   (no secrets included)
+3. Launch child with -EncodedCommand  →   A. Decode bootstrap, define functions
+4. Start named pipe server            ←   B. Connect to pipe (3 s timeout)
+5. Send secret commands over pipe     →   C. Decode + Invoke-Expression each command
+6. Close pipe server                  →   D. ReadLine returns null → exit pipe loop
+                                          E. Continue running interactively (-NoExit)
 ```
 
 The sensitive commands never appear in any process argument list. They travel over an IPC channel that is:
@@ -61,13 +62,14 @@ AGENTS.md                 # AI-agent guidance for working with this repo
 .\PSSecureCommand.ps1
 ```
 
-A new PowerShell window opens. After a brief moment it will execute the injected secure commands (demo: creates a `SecureString` containing `my-secret` and prints its plain-text value). The parent process exits cleanly once the named pipe server has delivered the payload.
+A new PowerShell window opens. After a brief moment it executes the injected commands (demo: creates a `SecureString` containing `my-secret` and prints its plain-text value). The **parent** script exits once the named pipe server has finished delivering the payload; the **child** window stays open (`-NoExit`) so you can inspect the result.
 
 ## Requirements
 
 - PowerShell 5.1 (Windows PowerShell) **or** PowerShell 7+ (pwsh)
 - Windows OS (named pipe server uses `"."` local-machine reference)
-- No external module dependencies
+- No runtime dependencies — all APIs used ship with PowerShell
+- Pester 5+ required to run the test suite (not needed to run the POC)
 
 ## Running the Tests
 
@@ -112,17 +114,18 @@ $ClientCommand = @(
 ### 2. Child process launch
 
 ```powershell
-$EncodedCommand = [Convert]::ToBase64String(
-    [System.Text.Encoding]::Unicode.GetBytes($ClientCommand))
+$EncodedCommand = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($ClientCommand))
 Start-Process $ShellName -ArgumentList @('-EncodedCommand', $EncodedCommand, '-NoExit')
 ```
 
 The encoded command contains only infrastructure — pipe name + function definitions. No secrets.
 
-### 3. Secure command delivery
+### 3. Secret command delivery
 
 ```powershell
-Invoke-PSCmdServer $PipeName -Commands @($SecureCommand)
+Invoke-PSCmdServer $PipeName -Commands @($SecretPayload)
 ```
 
-The server Base64-encodes each command (UTF-8) and writes it as a newline-delimited stream. The client Base64-decodes and `Invoke-Expression`s each line. Using a separate encoding (UTF-8 for pipe content, UTF-16LE for `-EncodedCommand`) avoids conflicts.
+The server Base64-encodes each command string (UTF-8 bytes → Base64) and writes it as a newline-delimited line. Multiple commands can be batched in the `$Commands` array — the client reads and `Invoke-Expression`s them in order, then exits the loop when `ReadLine` returns `$null` as the pipe closes.
+
+Using UTF-8 for pipe content and UTF-16 LE for `-EncodedCommand` keeps the two channels' encodings independent and avoids any decoding conflicts.

@@ -2,10 +2,10 @@
 
 <#
 .SYNOPSIS
-    Pester 5 tests for pscmd.ps1.
+    Pester 5 tests for PSSecureCommand.ps1.
 
 .DESCRIPTION
-    Loads only the function definitions from pscmd.ps1 using the PowerShell AST
+    Loads only the function definitions from PSSecureCommand.ps1 using the PowerShell AST
     so that the script's main body (which launches child processes) is never
     executed during testing.  Integration tests for the named pipe transport use
     PowerShell background jobs so the server and client sides can run concurrently
@@ -17,14 +17,14 @@ BeforeAll {
     # Parse the reference POC with the PS AST and extract every FunctionDefinition
     # node.  This avoids dot-sourcing the file (which would run the main body and
     # spin up a child process).
-    $Script:SourcePath = Join-Path $PSScriptRoot 'pscmd.ps1'
+    $Script:SourcePath = Join-Path $PSScriptRoot 'PSSecureCommand.ps1'
 
     $tokens = $parseErrors = $null
     $ast = [System.Management.Automation.Language.Parser]::ParseFile(
         $Script:SourcePath, [ref]$tokens, [ref]$parseErrors)
 
     if ($parseErrors.Count -gt 0) {
-        throw "AST parse errors in pscmd.ps1: $($parseErrors -join '; ')"
+        throw "AST parse errors in PSSecureCommand.ps1: $($parseErrors -join '; ')"
     }
 
     $functionAsts = $ast.FindAll(
@@ -44,7 +44,7 @@ BeforeAll {
 
 # ─────────────────────────────────────────────────────────────────────────────
 Describe 'AST loading' {
-    It 'loads all four expected functions from pscmd.ps1' {
+    It 'loads all four expected functions from PSSecureCommand.ps1' {
         $expectedFunctions = @(
             'Invoke-PSCmdClient',
             'Invoke-PSCmdServer',
@@ -57,7 +57,7 @@ Describe 'AST loading' {
         }
     }
 
-    It 'pscmd.ps1 has no parse errors' {
+    It 'PSSecureCommand.ps1 has no parse errors' {
         $t = $e = $null
         [System.Management.Automation.Language.Parser]::ParseFile(
             $Script:SourcePath, [ref]$t, [ref]$e) | Out-Null
@@ -312,7 +312,7 @@ Describe 'Shell selection' {
     It 'the shell expected for the current edition is available on this system' {
         $expected = if ($PSEdition -eq 'Desktop') { 'powershell' } else { 'pwsh' }
         $cmd = Get-Command $expected -CommandType Application -ErrorAction SilentlyContinue
-        $cmd | Should -Not -BeNullOrEmpty -Because "$expected must be on PATH for pscmd.ps1 to launch the child process"
+        $cmd | Should -Not -BeNullOrEmpty -Because "$expected must be on PATH for PSSecureCommand.ps1 to launch the child process"
     }
 
     It 'the other edition shell (if present) is also a valid executable' {
@@ -341,7 +341,7 @@ Describe 'End-to-end child process' {
         $pipeName = $Script:E2EPipeName
         $outFile  = $Script:E2EOutFile
 
-        # Build the bootstrap the same way pscmd.ps1's main body does.
+        # Build the bootstrap the same way PSSecureCommand.ps1's main body does.
         $clientCmd = @(
             (Get-FunctionDefinition 'Unprotect-SecureString'),
             (Get-FunctionDefinition 'Invoke-PSCmdClient'),
@@ -432,7 +432,7 @@ Describe 'Command secrecy — no leakage to command line or history' {
         $pipeName = $Script:SecrecyPipeName
         $secret   = $Script:SecretPayload
 
-        # Build exactly the same bootstrap that pscmd.ps1 builds.
+        # Build exactly the same bootstrap that PSSecureCommand.ps1 builds.
         $clientCmd = @(
             (Get-FunctionDefinition 'Unprotect-SecureString'),
             (Get-FunctionDefinition 'Invoke-PSCmdClient'),

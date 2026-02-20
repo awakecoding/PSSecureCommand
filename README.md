@@ -39,7 +39,7 @@ The sensitive commands never appear in any process argument list. They travel ov
 ## Repository Layout
 
 ```
-pscmd.ps1          # Reference proof-of-concept (single self-contained script)
+PSSecureCommand.ps1  # Reference proof-of-concept (single self-contained script)
 pscmd.Tests.ps1    # Pester 5 test suite
 README.md          # This file
 AGENTS.md          # AI-agent guidance for working with this repo
@@ -58,7 +58,7 @@ AGENTS.md          # AI-agent guidance for working with this repo
 
 ```powershell
 # From the repo root
-.\pscmd.ps1
+.\PSSecureCommand.ps1
 ```
 
 A new PowerShell window opens. After a brief moment it will execute the injected secure commands (demo: creates a `SecureString` containing `my-secret` and prints its plain-text value). The parent process exits cleanly once the named pipe server has delivered the payload.

@@ -8,7 +8,7 @@ and the pitfalls to avoid.
 
 ## Repository purpose
 
-PSSecureCommand is a **single-file proof-of-concept** (`pscmd.ps1`).  Its sole
+PSSecureCommand is a **single-file proof-of-concept** (`PSSecureCommand.ps1`).  Its sole
 purpose is to demonstrate how a parent PowerShell process can pass sensitive
 commands to a child PowerShell process through a Windows named pipe, so those
 commands never appear in the process argument list or in `ConsoleHost_history.txt`.
@@ -23,7 +23,7 @@ structure is intentional.
 
 | File | Role | Touch? |
 |------|------|--------|
-| `pscmd.ps1` | Reference POC — do not change without explicit instruction | Only on direct user request |
+| `PSSecureCommand.ps1` | Reference POC — do not change without explicit instruction | Only on direct user request |
 | `pscmd.Tests.ps1` | Pester 5 test suite | Edit freely to improve test coverage |
 | `README.md` | Human-facing documentation | Keep in sync with any code changes |
 | `AGENTS.md` | This file — AI agent guidance | Update when repo structure changes |
@@ -33,7 +33,7 @@ structure is intentional.
 ## Architecture overview
 
 ```
-pscmd.ps1 (main body runs once at script entry)
+PSSecureCommand.ps1 (main body runs once at script entry)
 │
 ├── Get-FunctionDefinition   - Serialises a loaded PS function to source text
 ├── Unprotect-SecureString   - SecureString → plain text (cross-edition)
@@ -107,8 +107,8 @@ what PowerShell's `-EncodedCommand` flag requires.  The pipe payload uses
 ### Loading the POC functions
 
 The test file uses the **PowerShell AST** to load only `FunctionDefinitionAst`
-nodes from `pscmd.ps1`.  This avoids executing the script body (which would
-launch a child process).  Never dot-source `pscmd.ps1` directly in tests.
+nodes from `PSSecureCommand.ps1`.  This avoids executing the script body (which would
+    launch a child process).  Never dot-source `PSSecureCommand.ps1` directly in tests.
 
 ```powershell
 # Correct pattern — used in BeforeAll
@@ -148,12 +148,12 @@ after asserting.
 
 ---
 
-## What to check before editing `pscmd.ps1`
+## What to check before editing `PSSecureCommand.ps1`
 
 1. Run `Invoke-Pester .\pscmd.Tests.ps1 -Output Detailed` — all tests should
    pass before and after your change.
 2. Confirm the edited script still runs end-to-end:  
-   `pwsh -File .\pscmd.ps1` (or `powershell -File .\pscmd.ps1` for 5.1)  
+   `pwsh -File .\PSSecureCommand.ps1` (or `powershell -File .\PSSecureCommand.ps1` for 5.1)  
    A new window should appear, and after ~1 second the plain-text value
    `my-secret` should be printed in it.
 3. Verify that `$EncodedCommand` (the `-EncodedCommand` argument) does **not**
@@ -168,7 +168,7 @@ after asserting.
 
 | Pitfall | Why it matters |
 |---|---|
-| Dot-sourcing `pscmd.ps1` in tests | Executes the main body; launches a real child process and hangs waiting for the pipe client |
+| Dot-sourcing `PSSecureCommand.ps1` in tests | Executes the main body; launches a real child process and hangs waiting for the pipe client |
 | Using UTF-8 for `-EncodedCommand` | PowerShell only accepts UTF-16 LE for `-EncodedCommand`; UTF-8 will produce garbage or no output |
 | Using UTF-16 LE on the pipe | The pipe protocol uses UTF-8; mixing them breaks the Base64 decode |
 | Forgetting `$Writer.AutoFlush = $true` | The client's `ReadLine` blocks indefinitely; the test times out |
@@ -181,7 +181,7 @@ after asserting.
 ## Extending the POC
 
 If a user asks to extend the mechanism (e.g., add encryption, support multiple
-command batches, or wrap it in a module), keep `pscmd.ps1` as the untouched
+command batches, or wrap it in a module), keep `PSSecureCommand.ps1` as the untouched
 reference and create new files.  Document the relationship in README.md.
 
 If a user asks to add Pester tests for new functionality, follow the existing

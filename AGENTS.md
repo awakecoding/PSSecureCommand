@@ -140,11 +140,14 @@ after asserting.
 | Describe block | What it tests |
 |---|---|
 | `AST loading` | All four functions are present; file has no parse errors |
-| `Unprotect-SecureString` | Plain text, empty string, Unicode, pipeline input |
-| `Get-FunctionDefinition` | Keyword presence, name, re-executability, round-trip |
+| `Unprotect-SecureString` | Plain text, Unicode, positional calling convention |
+| `Get-FunctionDefinition` | Keyword presence, name, re-executability, round-trip, error for missing name |
 | `Base64 / UTF-8 encoding` | Encoding round-trip correctness, newline-safety |
 | `Named pipe integration` | Single command, multi-command ordering, no-server timeout, SecureString scenario |
 | `Security properties` | GUID pipe name, max-clients=1, finite timeout, encoding choices |
+| `Shell selection` | Edition conditional selects correct executable; shell is on PATH |
+| `End-to-end child process` | Real child process launched; injected command confirmed executed via sentinel file; correct edition reported |
+| `Command secrecy` | Secret absent from bootstrap Base64, child command-line (CIM), and PSReadLine history file |
 
 ---
 

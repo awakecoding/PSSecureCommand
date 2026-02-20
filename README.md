@@ -39,10 +39,10 @@ The sensitive commands never appear in any process argument list. They travel ov
 ## Repository Layout
 
 ```
-PSSecureCommand.ps1  # Reference proof-of-concept (single self-contained script)
-PSSecureCommand.Tests.ps1  # Pester 5 test suite
-README.md          # This file
-AGENTS.md          # AI-agent guidance for working with this repo
+PSSecureCommand.ps1       # Reference proof-of-concept (single self-contained script)
+PSSecureCommand.Tests.ps1 # Pester 5 test suite (33 tests)
+README.md                 # This file
+AGENTS.md                 # AI-agent guidance for working with this repo
 ```
 
 ## Key Functions

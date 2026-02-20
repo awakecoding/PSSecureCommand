@@ -40,7 +40,7 @@ The sensitive commands never appear in any process argument list. They travel ov
 
 ```
 PSSecureCommand.ps1  # Reference proof-of-concept (single self-contained script)
-pscmd.Tests.ps1    # Pester 5 test suite
+PSSecureCommand.Tests.ps1  # Pester 5 test suite
 README.md          # This file
 AGENTS.md          # AI-agent guidance for working with this repo
 ```
@@ -76,7 +76,7 @@ A new PowerShell window opens. After a brief moment it will execute the injected
 Install-Module -Name Pester -MinimumVersion 5.0 -Scope CurrentUser
 
 # Run all tests
-Invoke-Pester .\pscmd.Tests.ps1 -Output Detailed
+Invoke-Pester .\PSSecureCommand.Tests.ps1 -Output Detailed
 ```
 
 ## Security Considerations

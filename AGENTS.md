@@ -24,7 +24,7 @@ structure is intentional.
 | File | Role | Touch? |
 |------|------|--------|
 | `PSSecureCommand.ps1` | Reference POC — do not change without explicit instruction | Only on direct user request |
-| `pscmd.Tests.ps1` | Pester 5 test suite | Edit freely to improve test coverage |
+| `PSSecureCommand.Tests.ps1` | Pester 5 test suite | Edit freely to improve test coverage |
 | `README.md` | Human-facing documentation | Keep in sync with any code changes |
 | `AGENTS.md` | This file — AI agent guidance | Update when repo structure changes |
 
@@ -102,7 +102,7 @@ what PowerShell's `-EncodedCommand` flag requires.  The pipe payload uses
 
 ---
 
-## Test suite conventions (`pscmd.Tests.ps1`)
+## Test suite conventions (`PSSecureCommand.Tests.ps1`)
 
 ### Loading the POC functions
 
@@ -150,7 +150,7 @@ after asserting.
 
 ## What to check before editing `PSSecureCommand.ps1`
 
-1. Run `Invoke-Pester .\pscmd.Tests.ps1 -Output Detailed` — all tests should
+1. Run `Invoke-Pester .\PSSecureCommand.Tests.ps1 -Output Detailed` — all tests should
    pass before and after your change.
 2. Confirm the edited script still runs end-to-end:  
    `pwsh -File .\PSSecureCommand.ps1` (or `powershell -File .\PSSecureCommand.ps1` for 5.1)  
